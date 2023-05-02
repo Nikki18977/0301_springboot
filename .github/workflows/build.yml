@@ -1,0 +1,30 @@
+name: Build
+on:
+  push:
+    branches: 
+      - main
+      
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      DB_ENDPOINT: 172.17.0.1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Run postgresql for test 
+        run: docker run --name db -e POSTGRES_PASSWORD=pass -e POSTGRES_USER=app -p 5432:5432
+            --mount src=$GITHUB_WORKSPACE/docker-entrypoint-initdb.d/00_schema.sql,dst=/docker-entrypoint-initdb.d/00_schema.sql,type=bind
+            -d postgres
+      - name: Build & push Docker image
+        uses: mr-smithers-excellent/docker-build-push@v6
+        with:
+          image: springboot
+          tags: latest
+          enableBuildKit: true
+          buildArgs: DB_ENDPOIN=$DB_ENDPOINT
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+  
+      
